@@ -15,20 +15,6 @@ class Todo {
     }
   }
 
-  editNote(id: number, title: string, content: string): void {
-    const index = this.findIndexById(id);
-    if (index !== -1) {
-      const note = this.notes[index];
-      if (note.requiresConfirmation) {
-        console.log('Editing confirmation required...');
-        // Logic for confirmation
-      }
-      note.title = title;
-      note.content = content;
-      note.lastEdited = new Date();
-    }
-  }
-
   getNoteById(id: number): Note | undefined {
     return this.notes.find(note => note.id === id);
   }
@@ -52,16 +38,23 @@ class Todo {
     return this.notes.filter(note => note.status === 'Not Done').length;
   }
 
-  searchNotesByTitleOrContent(query: string): Note[] {
-    return this.notes.filter(note => note.title.includes(query) || note.content.includes(query));
+  searchNotes(searchParams: SearchParams): Note[] {
+    return this.notes.filter(note => {
+      return (
+        (searchParams.title === undefined || note.title.includes(searchParams.title)) &&
+        (searchParams.content === undefined || note.content.includes(searchParams.content))
+      );
+    });
   }
 
-  sortNotesByStatus(): void {
-    this.notes.sort((a, b) => (a.status > b.status ? 1 : -1));
-  }
-
-  sortNotesByCreationDate(): void {
-    this.notes.sort((a, b) => a.creationDate.getTime() - b.creationDate.getTime());
+  sortNotes(sortingType: SortingType): void {
+    this.notes.sort((a, b) => {
+      if (sortingType === SortingType.ByStatus) {
+        return a.status.localeCompare(b.status);
+      } else {
+        return a.creationDate.getTime() - b.creationDate.getTime();
+      }
+    });
   }
 
   private findIndexById(id: number): number {
@@ -86,6 +79,26 @@ class Note {
     this.lastEdited = this.creationDate;
     this.status = 'Not Done';
   }
+
+  edit(title: string, content: string): void {
+    if (this.requiresConfirmation) {
+      console.log('Editing confirmation required...');
+      // Logic for confirmation
+    }
+    this.title = title;
+    this.content = content;
+    this.lastEdited = new Date();
+  }
+}
+
+enum SortingType {
+  ByStatus,
+  ByCreationDate,
+}
+
+interface SearchParams {
+  title?: string;
+  content?: string;
 }
 
 // Usage example:
@@ -97,7 +110,7 @@ todo.addNote('Prepare lunch', 'Spaghetti Bolognese', true);
 todo.addNote('Clean the room', 'Tidy up the entire room');
 
 todo.markNoteAsDone(1);
-todo.editNote(2, 'Prepare dinner', 'Pasta with tuna');
+todo.getNoteById(2)?.edit('Prepare dinner', 'Pasta with tuna');
 todo.deleteNote(3);
 
 console.log('All notes:', todo.getAllNotes());
@@ -105,10 +118,10 @@ console.log('Note with ID 2:', todo.getNoteById(2));
 console.log('Total number of notes:', todo.getTotalNoteCount());
 console.log('Number of uncompleted notes:', todo.getRemainingNoteCount());
 
-console.log("Search for notes containing the word 'prepare':", todo.searchNotesByTitleOrContent('prepare'));
+console.log("Search for notes containing the word 'prepare':", todo.searchNotes({ title: 'Prepare' }));
 console.log('Sorting by status:');
-todo.sortNotesByStatus();
+todo.sortNotes(SortingType.ByStatus);
 console.log(todo.getAllNotes());
 console.log('Sorting by creation date:');
-todo.sortNotesByCreationDate();
+todo.sortNotes(SortingType.ByCreationDate);
 console.log(todo.getAllNotes());
